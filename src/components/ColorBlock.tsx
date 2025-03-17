@@ -26,9 +26,12 @@ const ColorBlock: React.FC<ColorBlockProps> = ({
     lg: 'w-16 h-16',
   };
 
+  const displayHex = typeof color === 'string' && color.startsWith('#');
+  const shortHex = displayHex ? color.slice(-6).substring(0, 3) : '';
+
   return (
     <div
-      className={`color-block rounded-lg flex items-center justify-center ${sizeClasses[size]} ${getTextColor(color)} ${className}`}
+      className={`color-block rounded-lg flex items-center justify-center ${sizeClasses[size]} ${getTextColor(color)} ${className} cursor-pointer hover:opacity-90 transition-opacity`}
       style={{ backgroundColor: getColorHex(color) }}
       onClick={onClick}
     >
@@ -38,7 +41,7 @@ const ColorBlock: React.FC<ColorBlockProps> = ({
         )}
         {showLabel && (
           <span className="text-xs font-semibold">
-            {typeof color === 'string' && color.length === 1 ? color.toUpperCase() : ''}
+            {displayHex ? shortHex : (typeof color === 'string' && color.length === 1 ? color.toUpperCase() : '')}
           </span>
         )}
       </div>

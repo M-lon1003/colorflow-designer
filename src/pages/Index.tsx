@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { LevelData, SavedLevel, ChallengeType } from '../types/color-game';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,21 +15,21 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, HelpCircle } from 'lucide-react';
 import ChallengeCreator from '../components/ChallengeCreator';
 import LevelEditor from '../components/LevelEditor';
 import LevelTester from '../components/LevelTester';
 import SavedLevels from '../components/SavedLevels';
 import ColorChart from '../components/ColorChart';
+import UserGuide from '../components/UserGuide';
 import { toast } from 'sonner';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('designer');
   const [savedLevels, setSavedLevels] = useState<SavedLevel[]>([]);
-  const [currentView, setCurrentView] = useState<'list' | 'create' | 'edit' | 'test'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'edit' | 'test' | 'guide'>('list');
   const [currentLevel, setCurrentLevel] = useState<LevelData | null>(null);
   
-  // Load saved levels from localStorage
   useEffect(() => {
     const loadedLevels = localStorage.getItem('colorflow-levels');
     if (loadedLevels) {
@@ -42,7 +41,6 @@ const Index = () => {
     }
   }, []);
   
-  // Save levels to localStorage when they change
   useEffect(() => {
     localStorage.setItem('colorflow-levels', JSON.stringify(savedLevels));
   }, [savedLevels]);
@@ -57,7 +55,6 @@ const Index = () => {
     const existingLevelIndex = savedLevels.findIndex(l => l.id === level.id);
     
     if (existingLevelIndex >= 0) {
-      // Update existing level
       const updatedLevels = [...savedLevels];
       updatedLevels[existingLevelIndex] = {
         id: level.id,
@@ -67,7 +64,6 @@ const Index = () => {
       };
       setSavedLevels(updatedLevels);
     } else {
-      // Add new level
       setSavedLevels([
         ...savedLevels,
         {
@@ -110,6 +106,17 @@ const Index = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Design levels for a color-blending puzzle game where players mix colors to reach targets
           </p>
+          <div className="flex justify-center mt-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentView('guide')}
+              className="flex items-center gap-1"
+            >
+              <HelpCircle className="h-4 w-4" />
+              How to Use
+            </Button>
+          </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -160,9 +167,23 @@ const Index = () => {
                       <p className="text-sm">
                         As a designer, you can create challenges with different rules, color paths, and complexity levels.
                       </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mt-2"
+                        onClick={() => setCurrentView('guide')}
+                      >
+                        View User Guide
+                      </Button>
                     </CardContent>
                   </Card>
                 </div>
+              </div>
+            )}
+            
+            {currentView === 'guide' && (
+              <div className="max-w-4xl mx-auto">
+                <UserGuide />
               </div>
             )}
             
@@ -228,7 +249,7 @@ const Index = () => {
               />
             )}
             
-            {(currentView === 'create' || currentView === 'edit' || currentView === 'test') && (
+            {(currentView === 'create' || currentView === 'edit' || currentView === 'test' || currentView === 'guide') && (
               <div className="mt-4">
                 <Button 
                   variant="outline" 

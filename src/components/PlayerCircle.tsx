@@ -21,14 +21,16 @@ const PlayerCircle: React.FC<PlayerCircleProps> = ({
     md: 'w-10 h-10',
     lg: 'w-14 h-14',
   };
-
+  
+  const isHex = isHexColor(color as string);
+  
   return (
     <div
       className={`rounded-full flex items-center justify-center ${sizeClasses[size]} ${getTextColor(color)} ${animate ? 'animate-pulse-soft' : ''} ${className}`}
       style={{ backgroundColor: getColorHex(color) }}
     >
       <span className="text-xs font-semibold">
-        {isHexColor(color as string) ? '' : (color as string).toUpperCase()}
+        {isHex ? '' : (color as string).toUpperCase()}
       </span>
     </div>
   );
