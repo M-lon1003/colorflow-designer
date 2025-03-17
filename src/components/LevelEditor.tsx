@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { LevelData, LevelBlock, ColorCode } from '../types/color-game';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,10 +8,11 @@ import BlendRatioEditor from './BlendRatioEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Trash2, Save, Play, Settings, Sliders } from 'lucide-react';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
-import { COLORS } from '../utils/color-utils';
+import { COLORS, getAllAvailableColors } from '../utils/color-utils';
 
 interface LevelEditorProps {
   initialLevel: Partial<LevelData>;
@@ -37,6 +39,7 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
     description: initialLevel.description || '',
     challengeType: initialLevel.challengeType || 'colorPath',
     defaultBlendRatio: initialLevel.defaultBlendRatio || 0.5,
+    useSimpleMixing: initialLevel.useSimpleMixing || false,
   });
 
   const [selectedColor, setSelectedColor] = useState<ColorCode | string>('r');
@@ -44,6 +47,7 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
   const [isSettingStart, setIsSettingStart] = useState(false);
   const [showBlendRatioEditor, setShowBlendRatioEditor] = useState(false);
   const [customColors, setCustomColors] = useState<string[]>([]);
+  const [showOnlyStandardColors, setShowOnlyStandardColors] = useState(false);
   
   useEffect(() => {
     if (level.blocks.length === 0) {
@@ -155,6 +159,13 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
     });
   };
 
+  const handleToggleSimpleMixing = (checked: boolean) => {
+    setLevel({
+      ...level,
+      useSimpleMixing: checked
+    });
+  };
+
   const handleSave = () => {
     if (onSave) {
       onSave(level);
@@ -169,6 +180,11 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
   };
   
   const selectedBlock = level.blocks.find(block => block.id === selectedBlockId);
+
+  // Determine which colors to display based on the showOnlyStandardColors setting
+  const availableColors = showOnlyStandardColors 
+    ? Object.keys(COLORS) as ColorCode[]
+    : [...Object.keys(COLORS) as ColorCode[], ...customColors];
 
   return (
     <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -212,13 +228,36 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
           <div className="mb-4">
             <h3 className="text-lg font-medium mb-2">Tools</h3>
             <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Color Settings</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-standard-colors" className="text-xs">Show Only Standard Colors</Label>
+                    <Switch
+                      id="show-standard-colors"
+                      checked={showOnlyStandardColors}
+                      onCheckedChange={setShowOnlyStandardColors}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="use-simple-mixing" className="text-xs">Use Standard Color Mixing</Label>
+                    <Switch
+                      id="use-simple-mixing"
+                      checked={level.useSimpleMixing}
+                      onCheckedChange={handleToggleSimpleMixing}
+                    />
+                  </div>
+                </div>
+              </div>
+            
               <div>
                 <h4 className="text-sm font-medium mb-2">Color Palette</h4>
                 <ColorPalette
                   selectedColor={selectedColor}
                   onColorSelect={handleColorSelect}
-                  allowCustomColors={true}
-                  availableColors={[...Object.keys(COLORS) as ColorCode[], ...customColors]}
+                  allowCustomColors={!showOnlyStandardColors}
+                  availableColors={availableColors}
                 />
               </div>
               
@@ -232,8 +271,8 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
                         selectedColor={level.startColor}
                         onColorSelect={handleUpdateStartColor}
                         showLabels={false}
-                        allowCustomColors={true}
-                        availableColors={[...Object.keys(COLORS) as ColorCode[], ...customColors]}
+                        allowCustomColors={!showOnlyStandardColors}
+                        availableColors={availableColors}
                       />
                     </div>
                   </div>
@@ -244,8 +283,8 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
                         selectedColor={level.targetColor}
                         onColorSelect={handleUpdateTargetColor}
                         showLabels={false}
-                        allowCustomColors={true}
-                        availableColors={[...Object.keys(COLORS) as ColorCode[], ...customColors]}
+                        allowCustomColors={!showOnlyStandardColors}
+                        availableColors={availableColors}
                       />
                     </div>
                   </div>
@@ -300,6 +339,8 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
                   color2={selectedColor}
                   ratio={level.defaultBlendRatio}
                   onRatioChange={handleUpdateDefaultBlendRatio}
+                  useSimpleMixing={level.useSimpleMixing}
+                  onMixingModeChange={handleToggleSimpleMixing}
                 />
               )}
 
@@ -359,8 +400,11 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
                     ? level.targetColor 
                     : (level.targetColor as string).toUpperCase()}
                 </p>
-                <p className="text-sm">
+                <p className="text-sm mb-1">
                   <span className="font-medium">Max Steps:</span> {level.maxSteps}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Color Mixing:</span> {level.useSimpleMixing ? 'Standard' : 'Advanced Hex'}
                 </p>
               </div>
             </div>

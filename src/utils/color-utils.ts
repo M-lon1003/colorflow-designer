@@ -1,4 +1,3 @@
-
 import { ColorCode, ColorInfo } from '../types/color-game';
 
 export const COLORS: Record<ColorCode, ColorInfo> = {
@@ -81,12 +80,13 @@ export const rgbToHex = (r: number, g: number, b: number): string => {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
 };
 
-export const mixColors = (color1: ColorCode | string, color2: ColorCode | string, ratio: number = 0.5): ColorCode | string => {
+// Enhanced color mixing function that can use standard mixing rules or advanced hex blending
+export const mixColors = (color1: ColorCode | string, color2: ColorCode | string, ratio: number = 0.5, useSimpleMixing: boolean = false): ColorCode | string => {
   // If mixing the same color, return it
   if (color1 === color2) return color1;
   
-  // If using predefined colors and no ratio specified, use the original simple mixing
-  if (!isHexColor(color1) && !isHexColor(color2) && ratio === 0.5) {
+  // If using predefined colors and simple mixing is requested, use the original simple mixing
+  if (useSimpleMixing && !isHexColor(color1) && !isHexColor(color2) && ratio === 0.5) {
     // Basic RGB mixing for color codes
     const c1 = color1 as ColorCode;
     const c2 = color2 as ColorCode;
@@ -121,6 +121,18 @@ export const mixColors = (color1: ColorCode | string, color2: ColorCode | string
   const b = Math.round(rgb1.b * (1 - ratio) + rgb2.b * ratio);
   
   return rgbToHex(r, g, b);
+};
+
+// Helper function to get all available colors (both standard and hex)
+export const getAllAvailableColors = (includeCustom: boolean = true): (ColorCode | string)[] => {
+  const standardColors = Object.keys(COLORS) as ColorCode[];
+  if (!includeCustom) {
+    return standardColors;
+  }
+  
+  // Could add common hex colors here if needed
+  const defaultHexColors = ['#FF9E67', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
+  return [...standardColors, ...defaultHexColors];
 };
 
 export const getAllColorCombinations = (): Array<{from: ColorCode | string, to: ColorCode | string, result: ColorCode | string}> => {

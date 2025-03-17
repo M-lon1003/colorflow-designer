@@ -1,10 +1,13 @@
 
 import React, { useState } from 'react';
 import { ColorCode } from '../types/color-game';
-import { mixColors, getColorName } from '../utils/color-utils';
+import { mixColors, getColorName, getAllAvailableColors } from '../utils/color-utils';
 import ColorBlock from './ColorBlock';
 import PlayerCircle from './PlayerCircle';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { ArrowRight } from 'lucide-react';
 
 interface ColorMixerProps {
@@ -21,10 +24,18 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
   const [currentColor, setCurrentColor] = useState<ColorCode | string>(initialColor);
   const [selectedColor, setSelectedColor] = useState<ColorCode | string | null>(null);
   const [mixResult, setMixResult] = useState<ColorCode | string | null>(null);
+  const [useSimpleMixing, setUseSimpleMixing] = useState(false);
+  const [showAllHexColors, setShowAllHexColors] = useState(false);
+  const [blendRatio, setBlendRatio] = useState(0.5);
+
+  // Determine which colors to display based on the showAllHexColors setting
+  const displayColors = showAllHexColors 
+    ? availableColors 
+    : availableColors.filter(color => typeof color === 'string' && !color.startsWith('#'));
 
   const handleColorSelect = (color: ColorCode | string) => {
     setSelectedColor(color);
-    const result = mixColors(currentColor, color);
+    const result = mixColors(currentColor, color, blendRatio, useSimpleMixing);
     setMixResult(result);
   };
 
@@ -37,11 +48,48 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
     }
   };
 
+  const handleRatioChange = (value: number[]) => {
+    const newRatio = value[0] / 100;
+    setBlendRatio(newRatio);
+    if (selectedColor) {
+      const result = mixColors(currentColor, selectedColor, newRatio, useSimpleMixing);
+      setMixResult(result);
+    }
+  };
+
+  const handleMixingModeChange = (checked: boolean) => {
+    setUseSimpleMixing(checked);
+    if (selectedColor) {
+      const result = mixColors(currentColor, selectedColor, blendRatio, checked);
+      setMixResult(result);
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-lg border border-gray-200">
       <h3 className="text-lg font-medium mb-4">Color Mixer</h3>
       
-      <div className="flex items-center justify-center gap-4 mb-6">
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="show-all-colors" className="text-sm">Show Only Standard Colors</Label>
+          <Switch
+            id="show-all-colors"
+            checked={!showAllHexColors}
+            onCheckedChange={(checked) => setShowAllHexColors(!checked)}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <Label htmlFor="use-simple-mixing" className="text-sm">Use Standard Color Mixing</Label>
+          <Switch
+            id="use-simple-mixing"
+            checked={useSimpleMixing}
+            onCheckedChange={handleMixingModeChange}
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
         <div className="text-center">
           <p className="text-sm text-gray-500 mb-1">Current</p>
           <PlayerCircle color={currentColor} size="lg" />
@@ -67,10 +115,24 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
         )}
       </div>
       
+      {selectedColor && (
+        <div className="mb-4">
+          <Label className="text-sm mb-1 block">Blend Ratio: {blendRatio.toFixed(2)}</Label>
+          <Slider
+            value={[blendRatio * 100]}
+            min={0}
+            max={100}
+            step={1}
+            onValueChange={handleRatioChange}
+            className="mb-4"
+          />
+        </div>
+      )}
+      
       <div className="mb-4">
         <p className="text-sm font-medium mb-2">Available Colors</p>
         <div className="flex flex-wrap gap-2">
-          {availableColors.map((color) => (
+          {displayColors.map((color) => (
             <ColorBlock
               key={color}
               color={color}

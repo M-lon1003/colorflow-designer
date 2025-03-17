@@ -3,6 +3,7 @@ import React from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { ColorCode } from '../types/color-game';
 import ColorBlock from './ColorBlock';
 import PlayerCircle from './PlayerCircle';
@@ -13,6 +14,8 @@ interface BlendRatioEditorProps {
   color2: ColorCode | string;
   ratio: number;
   onRatioChange: (ratio: number) => void;
+  useSimpleMixing?: boolean;
+  onMixingModeChange?: (useSimple: boolean) => void;
 }
 
 const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
@@ -20,8 +23,10 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
   color2,
   ratio,
   onRatioChange,
+  useSimpleMixing = false,
+  onMixingModeChange,
 }) => {
-  const result = mixColors(color1, color2, ratio);
+  const result = mixColors(color1, color2, ratio, useSimpleMixing);
   
   const handleSliderChange = (value: number[]) => {
     onRatioChange(value[0] / 100);
@@ -31,6 +36,12 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
     const newValue = parseFloat(e.target.value);
     if (!isNaN(newValue) && newValue >= 0 && newValue <= 1) {
       onRatioChange(newValue);
+    }
+  };
+
+  const handleMixingModeChange = (checked: boolean) => {
+    if (onMixingModeChange) {
+      onMixingModeChange(checked);
     }
   };
   
@@ -80,6 +91,17 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
           <PlayerCircle color={result} size="md" />
         </div>
       </div>
+      
+      {onMixingModeChange && (
+        <div className="flex items-center justify-between pt-2 border-t">
+          <Label htmlFor="use-simple-mixing" className="text-xs">Use Standard Color Mixing</Label>
+          <Switch
+            id="use-simple-mixing"
+            checked={useSimpleMixing}
+            onCheckedChange={handleMixingModeChange}
+          />
+        </div>
+      )}
     </div>
   );
 };

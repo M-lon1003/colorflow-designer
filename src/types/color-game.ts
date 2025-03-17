@@ -35,6 +35,7 @@ export interface LevelData {
   description?: string;
   challengeType: ChallengeType;
   defaultBlendRatio?: number; // Default blend ratio for the level
+  useSimpleMixing?: boolean; // Whether to use simple color mixing (R+G=Y, etc.) or advanced hex blending
 }
 
 export type ChallengeType = 
