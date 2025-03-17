@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { ColorCode } from '../types/color-game';
-import { getColorHex, getTextColor } from '../utils/color-utils';
+import { getColorHex, getTextColor, isHexColor } from '../utils/color-utils';
 
 interface PlayerCircleProps {
-  color: ColorCode;
+  color: ColorCode | string;
   size?: 'sm' | 'md' | 'lg';
   animate?: boolean;
   className?: string;
@@ -27,7 +27,9 @@ const PlayerCircle: React.FC<PlayerCircleProps> = ({
       className={`rounded-full flex items-center justify-center ${sizeClasses[size]} ${getTextColor(color)} ${animate ? 'animate-pulse-soft' : ''} ${className}`}
       style={{ backgroundColor: getColorHex(color) }}
     >
-      <span className="text-xs font-semibold">{color.toUpperCase()}</span>
+      <span className="text-xs font-semibold">
+        {isHexColor(color) ? '' : (color as string).toUpperCase()}
+      </span>
     </div>
   );
 };

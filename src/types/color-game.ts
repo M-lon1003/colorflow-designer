@@ -11,13 +11,14 @@ export interface LevelBlock {
   id: string;
   x: number;
   y: number;
-  color: ColorCode;
+  color: ColorCode | string; // Now supports hex codes
+  blendRatio?: number; // Blend ratio for this block
 }
 
 export interface PlayerState {
   x: number;
   y: number;
-  currentColor: ColorCode;
+  currentColor: ColorCode | string; // Now supports hex codes
 }
 
 export interface LevelData {
@@ -26,13 +27,14 @@ export interface LevelData {
   width: number;
   height: number;
   startPosition: { x: number; y: number };
-  startColor: ColorCode;
-  targetColor: ColorCode;
+  startColor: ColorCode | string; // Now supports hex codes
+  targetColor: ColorCode | string; // Now supports hex codes
   blocks: LevelBlock[];
-  allowedColors: ColorCode[];
+  allowedColors: (ColorCode | string)[]; // Now supports hex codes
   maxSteps: number;
   description?: string;
   challengeType: ChallengeType;
+  defaultBlendRatio?: number; // Default blend ratio for the level
 }
 
 export type ChallengeType = 

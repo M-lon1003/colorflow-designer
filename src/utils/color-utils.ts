@@ -12,15 +12,25 @@ export const COLORS: Record<ColorCode, ColorInfo> = {
   'w': { code: 'w', name: 'White', hexValue: '#FFFFFF' },
 };
 
-export const getColorName = (code: ColorCode): string => {
-  return COLORS[code].name;
+export const getColorName = (code: ColorCode | string): string => {
+  if (isHexColor(code)) {
+    return code;
+  }
+  return COLORS[code as ColorCode]?.name || 'Custom';
 };
 
-export const getColorHex = (code: ColorCode): string => {
-  return COLORS[code].hexValue;
+export const getColorHex = (code: ColorCode | string): string => {
+  if (isHexColor(code)) {
+    return code;
+  }
+  return COLORS[code as ColorCode]?.hexValue || '#CCCCCC';
 };
 
-export const getTailwindColor = (code: ColorCode): string => {
+export const getTailwindColor = (code: ColorCode | string): string => {
+  if (isHexColor(code)) {
+    return 'bg-custom'; // For custom colors, styling will be applied inline
+  }
+  
   switch (code) {
     case 'r': return 'bg-game-red';
     case 'g': return 'bg-game-green';
@@ -34,34 +44,88 @@ export const getTailwindColor = (code: ColorCode): string => {
   }
 };
 
-export const getTextColor = (code: ColorCode): string => {
-  return ['k', 'b', 'r'].includes(code) ? 'text-white' : 'text-black';
+export const getTextColor = (code: ColorCode | string): string => {
+  if (isHexColor(code)) {
+    // Calculate perceived brightness to determine text color
+    const hex = code.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? 'text-black' : 'text-white';
+  }
+  
+  return ['k', 'b', 'r'].includes(code as ColorCode) ? 'text-white' : 'text-black';
 };
 
-export const mixColors = (color1: ColorCode, color2: ColorCode): ColorCode => {
+// Helper function to check if a color is a hex code
+export const isHexColor = (color: string | ColorCode): boolean => {
+  return typeof color === 'string' && color.startsWith('#');
+};
+
+// Convert hex to RGB
+export const hexToRgb = (hex: string): {r: number, g: number, b: number} => {
+  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  const formattedHex = hex.replace(shorthandRegex, (_, r, g, b) => r + r + g + g + b + b);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(formattedHex);
+  
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+};
+
+// Convert RGB to Hex
+export const rgbToHex = (r: number, g: number, b: number): string => {
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+};
+
+export const mixColors = (color1: ColorCode | string, color2: ColorCode | string, ratio: number = 0.5): ColorCode | string => {
+  // If mixing the same color, return it
   if (color1 === color2) return color1;
   
-  // Basic RGB mixing
-  if ((color1 === 'r' && color2 === 'g') || (color1 === 'g' && color2 === 'r')) return 'y';
-  if ((color1 === 'r' && color2 === 'b') || (color1 === 'b' && color2 === 'r')) return 'm';
-  if ((color1 === 'g' && color2 === 'b') || (color1 === 'b' && color2 === 'g')) return 'c';
+  // If using predefined colors and no ratio specified, use the original simple mixing
+  if (!isHexColor(color1) && !isHexColor(color2) && ratio === 0.5) {
+    // Basic RGB mixing for color codes
+    const c1 = color1 as ColorCode;
+    const c2 = color2 as ColorCode;
+    
+    if ((c1 === 'r' && c2 === 'g') || (c1 === 'g' && c2 === 'r')) return 'y';
+    if ((c1 === 'r' && c2 === 'b') || (c1 === 'b' && c2 === 'r')) return 'm';
+    if ((c1 === 'g' && c2 === 'b') || (c1 === 'b' && c2 === 'g')) return 'c';
+    
+    // White and black handling
+    if (c1 === 'w' || c2 === 'w') return c1 === 'w' ? c2 : c1;
+    if (c1 === 'k' || c2 === 'k') return 'k';
+    
+    // CMY mixing (simplistic)
+    if ((c1 === 'c' && c2 === 'm') || (c1 === 'm' && c2 === 'c')) return 'b';
+    if ((c1 === 'c' && c2 === 'y') || (c1 === 'y' && c2 === 'c')) return 'g';
+    if ((c1 === 'm' && c2 === 'y') || (c1 === 'y' && c2 === 'm')) return 'r';
+    
+    // Default fallback
+    return 'w';
+  }
   
-  // White and black handling
-  if (color1 === 'w' || color2 === 'w') return color1 === 'w' ? color2 : color1;
-  if (color1 === 'k' || color2 === 'k') return 'k';
+  // For hex colors or when using a specific ratio, properly blend the colors
+  const hex1 = getColorHex(color1);
+  const hex2 = getColorHex(color2);
   
-  // CMY mixing (simplistic)
-  if ((color1 === 'c' && color2 === 'm') || (color1 === 'm' && color2 === 'c')) return 'b';
-  if ((color1 === 'c' && color2 === 'y') || (color1 === 'y' && color2 === 'c')) return 'g';
-  if ((color1 === 'm' && color2 === 'y') || (color1 === 'y' && color2 === 'm')) return 'r';
+  const rgb1 = hexToRgb(hex1);
+  const rgb2 = hexToRgb(hex2);
   
-  // Default fallback
-  return 'w';
+  // Mix the colors based on the ratio
+  const r = Math.round(rgb1.r * (1 - ratio) + rgb2.r * ratio);
+  const g = Math.round(rgb1.g * (1 - ratio) + rgb2.g * ratio);
+  const b = Math.round(rgb1.b * (1 - ratio) + rgb2.b * ratio);
+  
+  return rgbToHex(r, g, b);
 };
 
-export const getAllColorCombinations = (): Array<{from: ColorCode, to: ColorCode, result: ColorCode}> => {
+export const getAllColorCombinations = (): Array<{from: ColorCode | string, to: ColorCode | string, result: ColorCode | string}> => {
   const allColors: ColorCode[] = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'w'];
-  const combinations: Array<{from: ColorCode, to: ColorCode, result: ColorCode}> = [];
+  const combinations: Array<{from: ColorCode | string, to: ColorCode | string, result: ColorCode | string}> = [];
   
   for (const color1 of allColors) {
     for (const color2 of allColors) {
@@ -79,16 +143,16 @@ export const getAllColorCombinations = (): Array<{from: ColorCode, to: ColorCode
 };
 
 export const findPathBetweenColors = (
-  startColor: ColorCode, 
-  targetColor: ColorCode, 
-  allowedColors: ColorCode[],
+  startColor: ColorCode | string, 
+  targetColor: ColorCode | string, 
+  allowedColors: (ColorCode | string)[],
   maxSteps: number = 5
-): ColorCode[] | null => {
+): (ColorCode | string)[] | null => {
   // Simple BFS to find shortest path
-  const queue: Array<{path: ColorCode[], current: ColorCode}> = [
+  const queue: Array<{path: (ColorCode | string)[], current: ColorCode | string}> = [
     {path: [], current: startColor}
   ];
-  const visited = new Set<ColorCode>([startColor]);
+  const visited = new Set<ColorCode | string>([startColor]);
   
   while (queue.length > 0) {
     const {path, current} = queue.shift()!;
