@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 
 interface ColorMixerProps {
-  initialColor: ColorCode;
-  availableColors: ColorCode[];
-  onMix?: (result: ColorCode) => void;
+  initialColor: ColorCode | string;
+  availableColors: (ColorCode | string)[];
+  onMix?: (result: ColorCode | string) => void;
 }
 
 const ColorMixer: React.FC<ColorMixerProps> = ({
@@ -18,11 +18,11 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
   availableColors,
   onMix,
 }) => {
-  const [currentColor, setCurrentColor] = useState<ColorCode>(initialColor);
-  const [selectedColor, setSelectedColor] = useState<ColorCode | null>(null);
-  const [mixResult, setMixResult] = useState<ColorCode | null>(null);
+  const [currentColor, setCurrentColor] = useState<ColorCode | string>(initialColor);
+  const [selectedColor, setSelectedColor] = useState<ColorCode | string | null>(null);
+  const [mixResult, setMixResult] = useState<ColorCode | string | null>(null);
 
-  const handleColorSelect = (color: ColorCode) => {
+  const handleColorSelect = (color: ColorCode | string) => {
     setSelectedColor(color);
     const result = mixColors(currentColor, color);
     setMixResult(result);

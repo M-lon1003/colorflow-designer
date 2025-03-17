@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { LevelData, LevelBlock, ColorCode } from '../types/color-game';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Save, Play, Settings, Sliders } from 'lucide-react';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
+import { COLORS } from '../utils/color-utils';
 
 interface LevelEditorProps {
   initialLevel: Partial<LevelData>;
@@ -45,7 +45,6 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
   const [showBlendRatioEditor, setShowBlendRatioEditor] = useState(false);
   const [customColors, setCustomColors] = useState<string[]>([]);
   
-  // Create an empty level if none exists
   useEffect(() => {
     if (level.blocks.length === 0) {
       const defaultBlocks: LevelBlock[] = [];
@@ -110,11 +109,9 @@ const LevelEditor: React.FC<LevelEditorProps> = ({
   const handleColorSelect = (color: ColorCode | string) => {
     setSelectedColor(color);
     
-    // Add custom color to the list if it's not already there
     if (typeof color === 'string' && color.startsWith('#') && !customColors.includes(color)) {
       setCustomColors([...customColors, color]);
       
-      // Also add to allowed colors if not already there
       if (!level.allowedColors.includes(color)) {
         setLevel({
           ...level,

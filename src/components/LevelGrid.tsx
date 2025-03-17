@@ -7,7 +7,7 @@ import PlayerCircle from './PlayerCircle';
 interface LevelGridProps {
   level: LevelData;
   playerPosition?: { x: number; y: number };
-  playerColor?: ColorCode;
+  playerColor?: ColorCode | string;
   selectedBlock?: string | null;
   onBlockClick?: (block: LevelBlock) => void;
   onEmptyCellClick?: (x: number, y: number) => void;

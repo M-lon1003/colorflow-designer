@@ -4,7 +4,7 @@ import { ColorCode } from '../types/color-game';
 import { getColorHex, getTextColor, getColorName } from '../utils/color-utils';
 
 interface ColorBlockProps {
-  color: ColorCode;
+  color: ColorCode | string;
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
   isSelected?: boolean;
@@ -38,7 +38,7 @@ const ColorBlock: React.FC<ColorBlockProps> = ({
         )}
         {showLabel && (
           <span className="text-xs font-semibold">
-            {color.toUpperCase()}
+            {typeof color === 'string' && color.length === 1 ? color.toUpperCase() : ''}
           </span>
         )}
       </div>

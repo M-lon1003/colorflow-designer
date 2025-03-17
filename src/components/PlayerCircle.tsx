@@ -28,7 +28,7 @@ const PlayerCircle: React.FC<PlayerCircleProps> = ({
       style={{ backgroundColor: getColorHex(color) }}
     >
       <span className="text-xs font-semibold">
-        {isHexColor(color) ? '' : (color as string).toUpperCase()}
+        {isHexColor(color as string) ? '' : (color as string).toUpperCase()}
       </span>
     </div>
   );

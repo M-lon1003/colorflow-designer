@@ -26,8 +26,8 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({
   const [customColor, setCustomColor] = useState('#FF9E67');
   
   // Filter out hex colors for proper display
-  const standardColors = colorCodes.filter(c => !isHexColor(c));
-  const hexColors = colorCodes.filter(c => isHexColor(c));
+  const standardColors = colorCodes.filter(c => !isHexColor(c as string));
+  const hexColors = colorCodes.filter(c => isHexColor(c as string));
 
   const handleCustomColorAdd = () => {
     if (customColor && customColor.startsWith('#') && customColor.length >= 4) {
@@ -41,7 +41,7 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({
         {standardColors.map((code) => (
           <ColorBlock
             key={code}
-            color={code}
+            color={code as ColorCode}
             isSelected={selectedColor === code}
             onClick={() => onColorSelect(code)}
             showLabel={showLabels}
@@ -55,7 +55,7 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({
           {hexColors.map((hexCode) => (
             <ColorBlock
               key={hexCode}
-              color={hexCode}
+              color={hexCode as ColorCode}
               isSelected={selectedColor === hexCode}
               onClick={() => onColorSelect(hexCode)}
               showLabel={false}

@@ -23,7 +23,7 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
   
   const [steps, setSteps] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
-  const [stepHistory, setStepHistory] = useState<ColorCode[]>([level.startColor]);
+  const [stepHistory, setStepHistory] = useState<(ColorCode | string)[]>([level.startColor]);
   
   useEffect(() => {
     // Check win condition
@@ -33,7 +33,7 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
     }
   }, [player.currentColor, level.targetColor, completed]);
   
-  const handleMix = (result: ColorCode) => {
+  const handleMix = (result: ColorCode | string) => {
     setSteps(steps + 1);
     setPlayer({
       ...player,
@@ -93,9 +93,13 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
                 <div key={index} className="flex items-center">
                   <div 
                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ backgroundColor: `var(--game-${color === 'r' ? 'red' : color === 'g' ? 'green' : color === 'b' ? 'blue' : color === 'c' ? 'cyan' : color === 'm' ? 'magenta' : color === 'y' ? 'yellow' : color === 'k' ? 'black' : 'white'})` }}
+                    style={{ 
+                      backgroundColor: typeof color === 'string' && color.startsWith('#') 
+                        ? color 
+                        : `var(--game-${color === 'r' ? 'red' : color === 'g' ? 'green' : color === 'b' ? 'blue' : color === 'c' ? 'cyan' : color === 'm' ? 'magenta' : color === 'y' ? 'yellow' : color === 'k' ? 'black' : 'white'})`
+                    }}
                   >
-                    {color.toUpperCase()}
+                    {typeof color === 'string' && !color.startsWith('#') ? color.toUpperCase() : ''}
                   </div>
                   {index < stepHistory.length - 1 && (
                     <div className="mx-1">→</div>
@@ -119,7 +123,9 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
             <h4 className="text-sm font-medium mb-2">Challenge Info</h4>
             <p className="text-sm mb-1">
               <span className="font-medium">Target Color:</span>{" "}
-              {level.targetColor.toUpperCase()}
+              {typeof level.targetColor === 'string' && !level.targetColor.startsWith('#') 
+                ? level.targetColor.toUpperCase() 
+                : level.targetColor}
             </p>
             <p className="text-sm mb-1">
               <span className="font-medium">Max Steps:</span> {level.maxSteps}

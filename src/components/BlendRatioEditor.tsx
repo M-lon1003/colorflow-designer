@@ -40,7 +40,7 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
       
       <div className="flex items-center justify-between space-x-4">
         <div className="text-center">
-          <ColorBlock color={color1} size="md" />
+          <ColorBlock color={color1 as ColorCode | string} size="md" />
           <p className="text-xs mt-1">Color 1</p>
         </div>
         
@@ -55,7 +55,7 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
         </div>
         
         <div className="text-center">
-          <ColorBlock color={color2} size="md" />
+          <ColorBlock color={color2 as ColorCode | string} size="md" />
           <p className="text-xs mt-1">Color 2</p>
         </div>
       </div>
