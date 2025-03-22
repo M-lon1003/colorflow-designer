@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ColorCode } from '../types/color-game';
 import { 
@@ -15,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
-import { ArrowRight, Magic, Plus } from 'lucide-react';
+import { ArrowRight, Wand2, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ColorMixerProps {
@@ -46,7 +45,6 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
   const [remainingSteps, setRemainingSteps] = useState(maxSteps);
   const [isTargetMatched, setIsTargetMatched] = useState(false);
   
-  // Check if we've matched the target whenever the current color changes
   useEffect(() => {
     if (targetColor && colorsMatch(currentColor, targetColor, tolerance)) {
       setIsTargetMatched(true);
@@ -55,7 +53,6 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
     }
   }, [currentColor, targetColor, tolerance]);
   
-  // Determine which colors to display based on the showAllHexColors setting
   const displayColors = showAllHexColors 
     ? availableColors 
     : availableColors.filter(color => typeof color === 'string' && !color.startsWith('#'));
@@ -63,7 +60,6 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
   const handleColorSelect = (color: ColorCode | string) => {
     setSelectedColor(color);
     
-    // If auto-optimize is enabled and we have a target, find optimal ratio
     let optimalRatio = blendRatio;
     if (autoOptimize && targetColor) {
       optimalRatio = findOptimalBlendRatio(currentColor, color, targetColor);
@@ -206,7 +202,7 @@ const ColorMixer: React.FC<ColorMixerProps> = ({
                 onClick={optimizeRatio}
                 className="h-7 px-2 flex items-center gap-1"
               >
-                <Magic className="h-3 w-3" />
+                <Wand2 className="h-3 w-3" />
                 <span className="text-xs">Optimize</span>
               </Button>
             )}
