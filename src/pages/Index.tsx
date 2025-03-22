@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { LevelData, SavedLevel, ChallengeType } from '../types/color-game';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,7 +22,7 @@ import LevelEditor from '../components/LevelEditor';
 import LevelTester from '../components/LevelTester';
 import SavedLevels from '../components/SavedLevels';
 import ColorChart from '../components/ColorChart';
-import UserGuide from '../components/UserGuide';
+import HowToUse from '../components/HowToUse';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -183,7 +184,7 @@ const Index = () => {
             
             {currentView === 'guide' && (
               <div className="max-w-4xl mx-auto">
-                <UserGuide />
+                <HowToUse />
               </div>
             )}
             
@@ -274,27 +275,34 @@ const Index = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm">
-                      The game uses these mixing rules to determine the result when colors blend:
+                      The game supports two color mixing modes:
                     </p>
                     
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">Primary Colors</p>
+                      <p className="text-sm font-medium">Standard Mixing (Simple)</p>
                       <p className="text-sm">• Red (R) + Green (G) = Yellow (Y)</p>
                       <p className="text-sm">• Red (R) + Blue (B) = Magenta (M)</p>
                       <p className="text-sm">• Green (G) + Blue (B) = Cyan (C)</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Secondary Colors</p>
                       <p className="text-sm">• Cyan (C) + Magenta (M) = Blue (B)</p>
                       <p className="text-sm">• Cyan (C) + Yellow (Y) = Green (G)</p>
                       <p className="text-sm">• Magenta (M) + Yellow (Y) = Red (R)</p>
                     </div>
                     
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">Special Colors</p>
-                      <p className="text-sm">• White (W) + Any Color = That Color</p>
-                      <p className="text-sm">• Black (K) + Any Color = Black (K)</p>
+                      <p className="text-sm font-medium">Advanced Hex Blending</p>
+                      <p className="text-sm">• Any hex color can blend with any other</p>
+                      <p className="text-sm">• Adjustable blend ratio from 0.0 to 1.0</p>
+                      <p className="text-sm">• RGB values are interpolated linearly</p>
+                      <p className="text-sm">• Results in smooth color gradients</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Classic Color Theory</p>
+                      <p className="text-sm">• Red + Yellow = Orange</p>
+                      <p className="text-sm">• Yellow + Blue = Green</p>
+                      <p className="text-sm">• Blue + Red = Purple</p>
+                      <p className="text-sm">• White + Any Color = That Color (lightened)</p>
+                      <p className="text-sm">• Black + Any Color = Black</p>
                     </div>
                   </CardContent>
                 </Card>

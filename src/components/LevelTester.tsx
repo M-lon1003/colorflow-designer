@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { LevelData, ColorCode, PlayerState } from '../types/color-game';
-import { mixColors } from '../utils/color-utils';
+import { mixColors, colorsMatch, getColorHex } from '../utils/color-utils';
 import LevelGrid from './LevelGrid';
 import ColorMixer from './ColorMixer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon, ArrowLeft, RotateCcw, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface LevelTesterProps {
@@ -26,12 +27,12 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
   const [stepHistory, setStepHistory] = useState<(ColorCode | string)[]>([level.startColor]);
   
   useEffect(() => {
-    // Check win condition
-    if (player.currentColor === level.targetColor && !completed) {
+    // Check win condition with tolerance
+    if (colorsMatch(player.currentColor, level.targetColor, level.colorTolerance || 0) && !completed) {
       setCompleted(true);
       toast.success("Challenge completed!");
     }
-  }, [player.currentColor, level.targetColor, completed]);
+  }, [player.currentColor, level.targetColor, level.colorTolerance, completed]);
   
   const handleMix = (result: ColorCode | string) => {
     setSteps(steps + 1);
@@ -41,7 +42,8 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
     });
     setStepHistory([...stepHistory, result]);
     
-    if (steps + 1 >= level.maxSteps && player.currentColor !== level.targetColor) {
+    if (steps + 1 >= level.maxSteps && 
+        !colorsMatch(result, level.targetColor, level.colorTolerance || 0)) {
       toast.error("Maximum steps reached!");
     }
   };
@@ -55,6 +57,20 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
     setSteps(0);
     setCompleted(false);
     setStepHistory([level.startColor]);
+  };
+  
+  const handleShareLevel = () => {
+    // Generate a shareable link or code for the level
+    // For now we'll just copy level details to clipboard
+    const levelDetails = `ColorFlow Challenge: "${level.name}"
+Start Color: ${level.startColor}
+Target Color: ${level.targetColor}
+Max Steps: ${level.maxSteps}
+Challenge Type: ${level.challengeType}`;
+
+    navigator.clipboard.writeText(levelDetails)
+      .then(() => toast.success("Level details copied to clipboard!"))
+      .catch(() => toast.error("Failed to copy level details"));
   };
   
   return (
@@ -72,13 +88,25 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset
           </Button>
+          <Button variant="outline" size="sm" onClick={handleShareLevel}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </Button>
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <div className="mb-4">
-            <h3 className="text-lg font-medium mb-2">{level.name}</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium mb-2">{level.name}</h3>
+              {level.colorTolerance && level.colorTolerance > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  Tolerance: {level.colorTolerance}
+                </Badge>
+              )}
+            </div>
+            
             <LevelGrid
               level={level}
               playerPosition={player}
@@ -108,14 +136,24 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
               ))}
             </div>
           </div>
+          
+          {level.description && (
+            <Alert className="mt-4">
+              <InfoIcon className="h-4 w-4" />
+              <AlertDescription>{level.description}</AlertDescription>
+            </Alert>
+          )}
         </div>
         
         <div>
           <div className="mb-4">
             <ColorMixer
               initialColor={player.currentColor}
+              targetColor={level.targetColor}
               availableColors={level.allowedColors}
               onMix={handleMix}
+              tolerance={level.colorTolerance}
+              maxSteps={level.maxSteps - steps}
             />
           </div>
           
@@ -123,12 +161,22 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
             <h4 className="text-sm font-medium mb-2">Challenge Info</h4>
             <p className="text-sm mb-1">
               <span className="font-medium">Target Color:</span>{" "}
-              {typeof level.targetColor === 'string' && !level.targetColor.startsWith('#') 
+              <span className="flex items-center gap-1">
+                <span
+                  className="inline-block w-3 h-3 rounded-full"
+                  style={{ backgroundColor: getColorHex(level.targetColor) }}
+                ></span>
+                {typeof level.targetColor === 'string' && !level.targetColor.startsWith('#') 
                 ? level.targetColor.toUpperCase() 
                 : level.targetColor}
+              </span>
             </p>
             <p className="text-sm mb-1">
               <span className="font-medium">Max Steps:</span> {level.maxSteps}
+            </p>
+            <p className="text-sm mb-1">
+              <span className="font-medium">Mixing Mode:</span>{" "}
+              {level.useSimpleMixing ? "Standard" : "Advanced Hex"}
             </p>
             <p className="text-sm">
               <span className="font-medium">Challenge Type:</span>{" "}
@@ -142,7 +190,30 @@ const LevelTester: React.FC<LevelTesterProps> = ({ level, onBack }) => {
                 ? "Target Matching"
                 : "Color Mixing"}
             </p>
+            
+            {level.calculatedMinSteps !== undefined && (
+              <p className="text-sm mt-1">
+                <span className="font-medium">Min Possible Steps:</span>{" "}
+                {level.calculatedMinSteps}
+              </p>
+            )}
           </div>
+          
+          {completed && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg mt-4">
+              <h4 className="text-sm font-medium text-green-800 mb-1">Challenge Completed!</h4>
+              <p className="text-xs text-green-700">
+                You reached the target color in {steps} steps.
+                {level.calculatedMinSteps !== undefined && level.calculatedMinSteps > 0 && (
+                  <>
+                    {steps <= level.calculatedMinSteps 
+                      ? " You found the optimal solution!" 
+                      : ` The minimum possible is ${level.calculatedMinSteps} steps.`}
+                  </>
+                )}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

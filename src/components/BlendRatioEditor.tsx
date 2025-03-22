@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { ColorCode } from '../types/color-game';
 import ColorBlock from './ColorBlock';
 import PlayerCircle from './PlayerCircle';
-import { mixColors } from '../utils/color-utils';
+import { mixColors, hexToRgb, rgbToHex } from '../utils/color-utils';
 
 interface BlendRatioEditorProps {
   color1: ColorCode | string;
@@ -16,6 +16,8 @@ interface BlendRatioEditorProps {
   onRatioChange: (ratio: number) => void;
   useSimpleMixing?: boolean;
   onMixingModeChange?: (useSimple: boolean) => void;
+  tolerance?: number;
+  onToleranceChange?: (tolerance: number) => void;
 }
 
 const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
@@ -25,6 +27,8 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
   onRatioChange,
   useSimpleMixing = false,
   onMixingModeChange,
+  tolerance = 0,
+  onToleranceChange,
 }) => {
   const result = mixColors(color1, color2, ratio, useSimpleMixing);
   
@@ -45,6 +49,26 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
     }
   };
   
+  const handleToleranceChange = (value: number[]) => {
+    if (onToleranceChange) {
+      onToleranceChange(value[0]);
+    }
+  };
+
+  // For tolerance visualization
+  const getToleranceColor = (baseColor: string, toleranceValue: number, lighter: boolean): string => {
+    if (toleranceValue === 0) return baseColor;
+    
+    const rgb = hexToRgb(baseColor);
+    const adjustment = lighter ? toleranceValue : -toleranceValue;
+    
+    return rgbToHex(
+      Math.min(255, Math.max(0, rgb.r + adjustment)),
+      Math.min(255, Math.max(0, rgb.g + adjustment)),
+      Math.min(255, Math.max(0, rgb.b + adjustment))
+    );
+  };
+
   return (
     <div className="space-y-4 p-4 border rounded-lg">
       <h3 className="text-base font-medium">Blend Ratio Editor</h3>
@@ -91,6 +115,41 @@ const BlendRatioEditor: React.FC<BlendRatioEditorProps> = ({
           <PlayerCircle color={result} size="md" />
         </div>
       </div>
+      
+      {onToleranceChange && (
+        <div className="pt-2 border-t">
+          <Label htmlFor="tolerance-slider" className="text-xs">Color Tolerance: {tolerance}</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <Slider
+              id="tolerance-slider"
+              value={[tolerance]}
+              min={0}
+              max={50}
+              step={1}
+              onValueChange={handleToleranceChange}
+            />
+            <div className="flex-shrink-0 w-10 text-xs">{tolerance}</div>
+          </div>
+          
+          {tolerance > 0 && (
+            <div className="flex items-center justify-center mt-2 gap-1">
+              <div 
+                className="w-6 h-6 rounded-full" 
+                style={{backgroundColor: getToleranceColor(typeof result === 'string' ? result : '#CCCCCC', tolerance, false)}}
+              ></div>
+              <div 
+                className="w-6 h-6 rounded-full" 
+                style={{backgroundColor: typeof result === 'string' ? result : '#CCCCCC'}}
+              ></div>
+              <div 
+                className="w-6 h-6 rounded-full" 
+                style={{backgroundColor: getToleranceColor(typeof result === 'string' ? result : '#CCCCCC', tolerance, true)}}
+              ></div>
+              <span className="text-xs ml-1">Acceptable range</span>
+            </div>
+          )}
+        </div>
+      )}
       
       {onMixingModeChange && (
         <div className="flex items-center justify-between pt-2 border-t">

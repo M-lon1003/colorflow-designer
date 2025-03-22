@@ -1,21 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ColorCode, 
   ChallengeSetting, 
   ChallengeType,
   LevelData
 } from '../types/color-game';
-import { findPathBetweenColors, getColorName, isHexColor } from '../utils/color-utils';
+import { 
+  findPathBetweenColors, 
+  getColorName, 
+  isHexColor, 
+  calculateMinSteps,
+  colorsMatch 
+} from '../utils/color-utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import ColorBlock from './ColorBlock';
 import PlayerCircle from './PlayerCircle';
+import BlendRatioEditor from './BlendRatioEditor';
 import { toast } from 'sonner';
+import { Info } from 'lucide-react';
 
 const CHALLENGE_SETTINGS: ChallengeSetting[] = [
   {
@@ -55,13 +64,28 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
   const [targetColor, setTargetColor] = useState<ColorCode | string>('b');
   const [selectedColors, setSelectedColors] = useState<(ColorCode | string)[]>(['r', 'g', 'b']);
   const [levelName, setLevelName] = useState('New Challenge');
-  const [maxSteps, setMaxSteps] = useState(5);
+  const [maxSteps, setMaxSteps] = useState(10);
   const [defaultBlendRatio, setDefaultBlendRatio] = useState(0.5);
   const [customStartColor, setCustomStartColor] = useState('#FFFFFF');
   const [customTargetColor, setCustomTargetColor] = useState('#5555FF');
   const [showCustomColors, setShowCustomColors] = useState(false);
+  const [useSimpleMixing, setUseSimpleMixing] = useState(false);
+  const [colorTolerance, setColorTolerance] = useState(0);
+  const [calculatedMinSteps, setCalculatedMinSteps] = useState<number | null>(null);
+  const [showBlendEditor, setShowBlendEditor] = useState(false);
   
   const availableColors: ColorCode[] = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'w'];
+  
+  // Recalculate the minimum steps whenever relevant parameters change
+  useEffect(() => {
+    if (!startColor || !targetColor || selectedColors.length === 0) {
+      setCalculatedMinSteps(null);
+      return;
+    }
+    
+    const minSteps = calculateMinSteps(startColor, targetColor, selectedColors, colorTolerance);
+    setCalculatedMinSteps(minSteps);
+  }, [startColor, targetColor, selectedColors, colorTolerance, useSimpleMixing]);
   
   const toggleColorSelection = (color: ColorCode | string) => {
     if (selectedColors.includes(color)) {
@@ -82,10 +106,17 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
       return;
     }
     
-    const possiblePath = findPathBetweenColors(startColor, targetColor, selectedColors, maxSteps);
+    // Check if a path is possible with current settings
+    const possiblePath = findPathBetweenColors(
+      startColor, 
+      targetColor, 
+      selectedColors, 
+      maxSteps,
+      colorTolerance
+    );
     
     if (!possiblePath && (activeTab === 'colorPath' || activeTab === 'minimalSteps')) {
-      toast.error("No valid path exists with current settings. Try adding more colors or increasing steps.");
+      toast.error("No valid path exists with current settings. Try adding more colors, increasing steps, or adjusting tolerance.");
       return;
     }
     
@@ -100,7 +131,10 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
       height: 8,
       startPosition: { x: 0, y: 0 },
       blocks: [],
-      defaultBlendRatio
+      defaultBlendRatio,
+      useSimpleMixing,
+      colorTolerance,
+      calculatedMinSteps: calculatedMinSteps || undefined
     };
     
     onCreateChallenge(challenge);
@@ -116,6 +150,14 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
   const handleApplyCustomTargetColor = () => {
     if (customTargetColor && customTargetColor.startsWith('#')) {
       setTargetColor(customTargetColor);
+    }
+  };
+
+  const handleAddCustomColor = (colorToAdd: string) => {
+    if (colorToAdd && colorToAdd.startsWith('#')) {
+      if (!selectedColors.includes(colorToAdd)) {
+        setSelectedColors([...selectedColors, colorToAdd]);
+      }
     }
   };
   
@@ -175,7 +217,7 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
             </TabsContent>
           </Tabs>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium mb-2 block">Start Color</label>
@@ -252,7 +294,7 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
           
           <div>
             <label className="text-sm font-medium mb-2 block">Available Colors</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {availableColors.map((color) => (
                 <ColorBlock
                   key={color}
@@ -263,14 +305,53 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
                 />
               ))}
             </div>
+            
+            {showCustomColors && (
+              <div className="mt-4">
+                <div className="text-sm font-medium mb-2">Add Custom Hex Color</div>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Input
+                      value={customStartColor}
+                      onChange={(e) => setCustomStartColor(e.target.value)}
+                      placeholder="#RRGGBB"
+                    />
+                  </div>
+                  <Button size="sm" onClick={() => handleAddCustomColor(customStartColor)}>
+                    Add to Palette
+                  </Button>
+                </div>
+                
+                <div className="mt-3">
+                  <div className="text-sm font-medium mb-2">Custom Colors in Palette:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedColors
+                      .filter(color => isHexColor(color))
+                      .map((color, index) => (
+                        <ColorBlock
+                          key={`custom-${index}`}
+                          color={color}
+                          isSelected={true}
+                          onClick={() => toggleColorSelection(color)}
+                        />
+                      ))}
+                    {selectedColors.filter(color => isHexColor(color)).length === 0 && (
+                      <p className="text-sm text-muted-foreground">No custom colors added yet</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Maximum Steps: {maxSteps}</label>
+              <div className="flex justify-between">
+                <label className="text-sm font-medium mb-2 block">Maximum Steps: {maxSteps}</label>
+              </div>
               <Slider
                 min={1}
-                max={10}
+                max={50}
                 value={[maxSteps]}
                 onValueChange={(value) => setMaxSteps(value[0])}
                 className="w-full"
@@ -278,9 +359,19 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
             </div>
             
             <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Default Blend Ratio: {defaultBlendRatio.toFixed(2)}
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium mb-2 block">
+                  Default Blend Ratio: {defaultBlendRatio.toFixed(2)}
+                </Label>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs px-2"
+                  onClick={() => setShowBlendEditor(!showBlendEditor)}
+                >
+                  {showBlendEditor ? "Hide Editor" : "Show Editor"}
+                </Button>
+              </div>
               <Slider
                 min={0}
                 max={100}
@@ -292,6 +383,53 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
             </div>
           </div>
           
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium mb-2 block">
+                Color Tolerance: {colorTolerance}
+              </Label>
+              <Slider
+                min={0}
+                max={50}
+                value={[colorTolerance]}
+                onValueChange={(value) => setColorTolerance(value[0])}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Higher tolerance allows colors to match even if they're not exactly the same
+              </p>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="use-simple-mixing" className="text-sm font-medium">Color Mixing Mode</Label>
+                <Switch
+                  id="use-simple-mixing"
+                  checked={useSimpleMixing}
+                  onCheckedChange={setUseSimpleMixing}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {useSimpleMixing 
+                  ? "Using standard color mixing (R+G=Y, etc.)" 
+                  : "Using advanced hex blending"}
+              </p>
+            </div>
+          </div>
+          
+          {showBlendEditor && (
+            <BlendRatioEditor
+              color1={startColor}
+              color2={targetColor}
+              ratio={defaultBlendRatio}
+              onRatioChange={setDefaultBlendRatio}
+              useSimpleMixing={useSimpleMixing}
+              onMixingModeChange={setUseSimpleMixing}
+              tolerance={colorTolerance}
+              onToleranceChange={setColorTolerance}
+            />
+          )}
+          
           <div className="bg-muted p-3 rounded-lg">
             <h4 className="font-medium mb-2">Challenge Summary</h4>
             <div className="flex items-center gap-2 mb-2">
@@ -300,14 +438,32 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({ onCreateChallenge }
               <PlayerCircle color={targetColor} size="sm" />
               <span className="text-sm ml-2">in max {maxSteps} steps</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Using {selectedColors.length} colors: {selectedColors.map(c => 
-                isHexColor(c) ? c : getColorName(c as ColorCode)
-              ).join(', ')}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Default blend ratio: {defaultBlendRatio.toFixed(2)}
-            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <p className="text-sm text-muted-foreground">
+                Using {selectedColors.length} colors: {selectedColors.slice(0, 3).map(c => 
+                  isHexColor(c) ? c.substring(0, 7) : getColorName(c as ColorCode)
+                ).join(', ')}
+                {selectedColors.length > 3 ? ` and ${selectedColors.length - 3} more...` : ''}
+              </p>
+              
+              <div className="text-sm text-muted-foreground">
+                Default blend ratio: {defaultBlendRatio.toFixed(2)}
+                <br />
+                Color tolerance: {colorTolerance}
+              </div>
+            </div>
+            
+            {calculatedMinSteps !== null && (
+              <div className="mt-2 p-2 bg-secondary rounded flex items-center gap-2">
+                <Info size={16} />
+                <p className="text-sm">
+                  {calculatedMinSteps >= 0 
+                    ? `Minimum steps required: ${calculatedMinSteps}` 
+                    : "No valid path found with current settings"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

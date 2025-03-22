@@ -1,4 +1,5 @@
-import { ColorCode, ColorInfo } from '../types/color-game';
+
+import { ColorCode, ColorInfo, ColorMixResult, ClassicColorBlend } from '../types/color-game';
 
 export const COLORS: Record<ColorCode, ColorInfo> = {
   'r': { code: 'r', name: 'Red', hexValue: '#FF5555' },
@@ -10,6 +11,16 @@ export const COLORS: Record<ColorCode, ColorInfo> = {
   'k': { code: 'k', name: 'Black', hexValue: '#333333' },
   'w': { code: 'w', name: 'White', hexValue: '#FFFFFF' },
 };
+
+// Classic color blends that represent traditional color theory
+export const CLASSIC_COLOR_BLENDS: ClassicColorBlend[] = [
+  { color1: 'r', color2: 'y', result: '#FF7F00', name: 'Orange' },
+  { color1: 'b', color2: 'y', result: '#7FFF00', name: 'Chartreuse' },
+  { color1: 'g', color2: 'c', result: '#00FF7F', name: 'Spring Green' },
+  { color1: 'b', color2: 'c', result: '#007FFF', name: 'Azure' },
+  { color1: 'b', color2: 'm', result: '#7F00FF', name: 'Violet' },
+  { color1: 'r', color2: 'm', result: '#FF007F', name: 'Rose' },
+];
 
 export const getColorName = (code: ColorCode | string): string => {
   if (isHexColor(code)) {
@@ -135,9 +146,9 @@ export const getAllAvailableColors = (includeCustom: boolean = true): (ColorCode
   return [...standardColors, ...defaultHexColors];
 };
 
-export const getAllColorCombinations = (): Array<{from: ColorCode | string, to: ColorCode | string, result: ColorCode | string}> => {
+export const getAllColorCombinations = (): Array<ColorMixResult> => {
   const allColors: ColorCode[] = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'w'];
-  const combinations: Array<{from: ColorCode | string, to: ColorCode | string, result: ColorCode | string}> = [];
+  const combinations: Array<ColorMixResult> = [];
   
   for (const color1 of allColors) {
     for (const color2 of allColors) {
@@ -151,36 +162,114 @@ export const getAllColorCombinations = (): Array<{from: ColorCode | string, to: 
     }
   }
   
-  return combinations;
+  // Add popular hex color combinations
+  const popularHexCombos = [
+    { from: '#FF5555', to: '#5555FF', result: mixColors('#FF5555', '#5555FF') },
+    { from: '#55FF55', to: '#FF55FF', result: mixColors('#55FF55', '#FF55FF') },
+    { from: '#FFFF55', to: '#5555FF', result: mixColors('#FFFF55', '#5555FF') }
+  ];
+  
+  return [...combinations, ...popularHexCombos];
+};
+
+// Compare colors with tolerance
+export const colorsMatch = (color1: ColorCode | string, color2: ColorCode | string, tolerance: number = 0): boolean => {
+  if (color1 === color2) return true;
+  
+  const hex1 = getColorHex(color1);
+  const hex2 = getColorHex(color2);
+  
+  if (tolerance === 0) return hex1 === hex2;
+  
+  const rgb1 = hexToRgb(hex1);
+  const rgb2 = hexToRgb(hex2);
+  
+  const rDiff = Math.abs(rgb1.r - rgb2.r);
+  const gDiff = Math.abs(rgb1.g - rgb2.g);
+  const bDiff = Math.abs(rgb1.b - rgb2.b);
+  
+  return rDiff <= tolerance && gDiff <= tolerance && bDiff <= tolerance;
+};
+
+// Calculate color distance (Euclidean distance in RGB space)
+export const colorDistance = (color1: ColorCode | string, color2: ColorCode | string): number => {
+  const rgb1 = hexToRgb(getColorHex(color1));
+  const rgb2 = hexToRgb(getColorHex(color2));
+  
+  const rDiff = rgb1.r - rgb2.r;
+  const gDiff = rgb1.g - rgb2.g;
+  const bDiff = rgb1.b - rgb2.b;
+  
+  return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
+};
+
+// Find optimal blend ratio between two colors to get closest to target
+export const findOptimalBlendRatio = (color1: ColorCode | string, color2: ColorCode | string, target: ColorCode | string): number => {
+  const targetRgb = hexToRgb(getColorHex(target));
+  const rgb1 = hexToRgb(getColorHex(color1));
+  const rgb2 = hexToRgb(getColorHex(color2));
+  
+  // Solve for ratio using least squares
+  const numerator = (targetRgb.r - rgb1.r) * (rgb2.r - rgb1.r) + 
+                   (targetRgb.g - rgb1.g) * (rgb2.g - rgb1.g) + 
+                   (targetRgb.b - rgb1.b) * (rgb2.b - rgb1.b);
+  
+  const denominator = Math.pow(rgb2.r - rgb1.r, 2) + 
+                     Math.pow(rgb2.g - rgb1.g, 2) + 
+                     Math.pow(rgb2.b - rgb1.b, 2);
+  
+  if (denominator === 0) return 0.5;
+  
+  const ratio = numerator / denominator;
+  
+  // Clamp between 0 and 1
+  return Math.max(0, Math.min(1, ratio));
 };
 
 export const findPathBetweenColors = (
   startColor: ColorCode | string, 
   targetColor: ColorCode | string, 
   allowedColors: (ColorCode | string)[],
-  maxSteps: number = 5
-): (ColorCode | string)[] | null => {
+  maxSteps: number = 50,
+  tolerance: number = 0,
+  useOptimalRatio: boolean = true
+): {path: (ColorCode | string)[], ratios: number[]} | null => {
   // Simple BFS to find shortest path
-  const queue: Array<{path: (ColorCode | string)[], current: ColorCode | string}> = [
-    {path: [], current: startColor}
+  const queue: Array<{
+    path: (ColorCode | string)[], 
+    ratios: number[],
+    current: ColorCode | string
+  }> = [
+    {path: [], ratios: [], current: startColor}
   ];
-  const visited = new Set<ColorCode | string>([startColor]);
+  const visited = new Set<string>([getColorHex(startColor)]);
   
   while (queue.length > 0) {
-    const {path, current} = queue.shift()!;
+    const {path, ratios, current} = queue.shift()!;
     
-    if (current === targetColor) {
-      return [...path, current];
+    if (colorsMatch(current, targetColor, tolerance)) {
+      return {
+        path: [...path, current],
+        ratios: ratios
+      };
     }
     
     if (path.length >= maxSteps) continue;
     
     for (const color of allowedColors) {
-      const mixed = mixColors(current, color);
-      if (!visited.has(mixed)) {
-        visited.add(mixed);
+      // If using optimal ratio, calculate best blend ratio
+      const ratio = useOptimalRatio
+        ? findOptimalBlendRatio(current, color, targetColor)
+        : 0.5;
+      
+      const mixed = mixColors(current, color, ratio);
+      const mixedHex = getColorHex(mixed);
+      
+      if (!visited.has(mixedHex)) {
+        visited.add(mixedHex);
         queue.push({
           path: [...path, current],
+          ratios: [...ratios, ratio],
           current: mixed
         });
       }
@@ -188,4 +277,22 @@ export const findPathBetweenColors = (
   }
   
   return null;
+};
+
+export const calculateMinSteps = (
+  startColor: ColorCode | string,
+  targetColor: ColorCode | string,
+  allowedColors: (ColorCode | string)[],
+  tolerance: number = 0
+): number => {
+  const result = findPathBetweenColors(
+    startColor,
+    targetColor,
+    allowedColors,
+    50, // Use a high max steps value for calculation
+    tolerance,
+    true // Use optimal ratios
+  );
+  
+  return result ? result.path.length - 1 : -1; // -1 means no path found
 };

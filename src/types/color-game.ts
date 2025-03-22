@@ -36,6 +36,8 @@ export interface LevelData {
   challengeType: ChallengeType;
   defaultBlendRatio?: number; // Default blend ratio for the level
   useSimpleMixing?: boolean; // Whether to use simple color mixing (R+G=Y, etc.) or advanced hex blending
+  colorTolerance?: number; // Tolerance range for matching target color (0-255)
+  calculatedMinSteps?: number; // Calculated minimum steps to reach target
 }
 
 export type ChallengeType = 
@@ -56,4 +58,18 @@ export interface SavedLevel {
   name: string;
   lastEdited: string;
   data: LevelData;
+}
+
+export interface ColorMixResult {
+  from: ColorCode | string;
+  to: ColorCode | string;
+  result: ColorCode | string;
+  ratio?: number;
+}
+
+export interface ClassicColorBlend {
+  color1: ColorCode | string;
+  color2: ColorCode | string;
+  result: ColorCode | string;
+  name: string;
 }
